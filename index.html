@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego: Adivina el Número</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 1rem;
+      background: #f7f9fc;
+      color: #333;
+    }
+    .container {
+      max-width: 800px;
+      margin: auto;
+    }
+    h1 {
+      text-align: center;
+    }
+    select, input, button {
+      font-size: 1rem;
+      padding: 0.5rem;
+      margin-right: 0.5rem;
+    }
+    .section {
+      margin-top: 2rem;
+    }
+    .cols {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+    }
+    .col {
+      flex: 1;
+      min-width: 150px;
+      background: #fff;
+      padding: 1rem;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.05);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+    .historial .entry {
+      padding: 0.25rem;
+      margin: 0.25rem 0;
+      border-radius: 4px;
+    }
+    .green { background-color: #d4edda; color: #155724; }
+    .red { background-color: #f8d7da; color: #721c24; }
+    @media (max-width: 600px) {
+      .cols {
+        flex-direction: column;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🎯 Adivina el Número</h1>
+    <div>
+      <label for="nivel">Dificultad:</label>
+      <select id="nivel">
+        <option value="facil">Fácil</option>
+        <option value="medio">Medio</option>
+        <option value="avanzado">Avanzado</option>
+        <option value="extremo">Extremo</option>
+      </select>
+      <button onclick="cambiarNivel()">Cambiar Nivel</button>
+    </div>
+
+    <div class="section">
+      <input type="number" id="entradaNumero" placeholder="Ingresa un número..." />
+      <button onclick="intentarNumero()">Intentar</button>
+      <span id="error" style="color:red;"></span>
+    </div>
+
+    <div class="section cols">
+      <div class="col">
+        <h3>📉 Menor que</h3>
+        <ul id="menores"></ul>
+      </div>
+      <div class="col">
+        <h3>📈 Mayor que</h3>
+        <ul id="mayores"></ul>
+      </div>
+    </div>
+
+    <div class="section">
+      <h3>📜 Historial de Juegos</h3>
+      <div id="historial" class="historial"></div>
+    </div>
+  </div>
+
+  <script>
+    const baseUrl = 'http://localhost:3000/juego';
+
+    async function obtenerEstado() {
+      const res = await fetch(`${baseUrl}/estado`);
+      const data = await res.json();
+      renderizar(data);
+    }
+
+    async function intentarNumero() {
+      const numero = document.getElementById('entradaNumero').value;
+      console.log(numero);
+      
+      const res = await fetch(`${baseUrl}/intentar`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ numero })
+      });
+      const data = await res.json();
+      document.getElementById('error').textContent = data.error || '';
+      if (!data.error) renderizar(data);
+    }
+
+    async function cambiarNivel() {
+      const dificultad = document.getElementById('nivel').value;
+      const res = await fetch(`${baseUrl}/nivel`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dificultad })
+      });
+      const data = await res.json();
+      renderizar(data);
+    }
+
+    function renderizar(data) {
+      document.getElementById('entradaNumero').value = '';
+
+      const mayores = document.getElementById('mayores');
+      mayores.innerHTML = data.mayores.map(n => `<li>${n}</li>`).join('');
+
+      const menores = document.getElementById('menores');
+      menores.innerHTML = data.menores.map(n => `<li>${n}</li>`).join('');
+
+      const historial = document.getElementById('historial');
+      historial.innerHTML = data.historial.map(j => `
+        <div class="entry ${j.color}">
+          <strong>${j.dificultad}</strong>: Secreto ${j.numeroSecreto} → Intentos: ${j.intentos.join(', ')}
+        </div>
+      `).join('');
+    }
+
+    obtenerEstado();
+  </script>
+</body>
+</html>
